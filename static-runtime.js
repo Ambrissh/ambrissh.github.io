@@ -1,21 +1,35 @@
 (() => {
-  const lazyImages = document.querySelectorAll("img[data-lazy-src]");
   const loadImage = (image) => {
     image.src = image.dataset.lazySrc;
     image.removeAttribute("data-lazy-src");
   };
 
-  if ("IntersectionObserver" in window) {
-    const imageObserver = new IntersectionObserver((entries, observer) => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
-        loadImage(entry.target);
-        observer.unobserve(entry.target);
-      }
+  const observeLazyImages = () => {
+    const lazyImages = document.querySelectorAll("img[data-lazy-src]");
+    if ("IntersectionObserver" in window) {
+      const imageObserver = new IntersectionObserver((entries, observer) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          loadImage(entry.target);
+          observer.unobserve(entry.target);
+        }
+      });
+      lazyImages.forEach((image) => imageObserver.observe(image));
+    } else {
+      lazyImages.forEach(loadImage);
+    }
+  };
+
+  const deferredHomeContent = document.querySelector("#deferred-home-content");
+  if (deferredHomeContent instanceof HTMLTemplateElement) {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        deferredHomeContent.replaceWith(deferredHomeContent.content.cloneNode(true));
+        observeLazyImages();
+      });
     });
-    lazyImages.forEach((image) => imageObserver.observe(image));
   } else {
-    lazyImages.forEach(loadImage);
+    observeLazyImages();
   }
 
   document.addEventListener("click", (event) => {
